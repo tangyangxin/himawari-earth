@@ -3,18 +3,16 @@ name: Update Himawari Wallpaper
 
 on:
 
-  # 手动运行
   workflow_dispatch:
 
 
-  # 每10分钟运行一次
   schedule:
 
+    # 每10分钟运行
     - cron: "*/10 * * * *"
 
 
 
-# 权限
 permissions:
 
   contents: read
@@ -31,7 +29,7 @@ jobs:
   update:
 
 
-    name: Generate images
+    name: Generate wallpaper
 
     runs-on: ubuntu-latest
 
@@ -40,7 +38,7 @@ jobs:
     steps:
 
 
-      # 拉取代码
+      # 获取代码
 
       - name: Checkout
 
@@ -70,17 +68,17 @@ jobs:
 
 
 
-      # 运行你的程序
+      # 生成图片
 
-      - name: Generate wallpaper
+      - name: Generate images
 
-        run: |
+        run:
 
           python main.py
 
 
 
-      # 准备Pages文件
+      # 创建Pages内容
 
       - name: Prepare Pages
 
@@ -89,16 +87,46 @@ jobs:
           mkdir -p public
 
 
-          cp output/earth_phone.webp public/
+          # 当前固定URL图片
 
-          cp output/earth_desktop.webp public/
+          cp output/earth_phone.webp public/earth_phone.webp
 
+          cp output/earth_desktop.webp public/earth_desktop.webp
+
+
+
+          # 生成时间戳
+
+          TIME=$(date -u +"%Y%m%d_%H%M%S")
+
+
+          # 历史版本图片
+
+          cp output/earth_phone.webp \
+          public/earth_phone_${TIME}.webp
+
+
+          cp output/earth_desktop.webp \
+          public/earth_desktop_${TIME}.webp
+
+
+
+          # 更新时间文件
+
+          date -u +"%Y-%m-%d %H:%M:%S UTC" \
+          > public/update.txt
+
+
+
+          # 创建主页
 
           cat > public/index.html <<EOF
+
 
           <!DOCTYPE html>
 
           <html>
+
 
           <head>
 
@@ -107,35 +135,40 @@ jobs:
           <title>Himawari Earth</title>
 
 
+          <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+
           <style>
+
 
           body {
 
-            background: black;
+              background:black;
 
-            color: white;
+              color:white;
 
-            text-align: center;
+              text-align:center;
 
-            font-family: Arial, sans-serif;
+              font-family:Arial,sans-serif;
 
           }
+
 
 
           img {
 
-            width: 90%;
+              width:90%;
 
-            max-width: 600px;
+              max-width:600px;
 
           }
 
 
+
           a {
 
-            color: white;
-
-            font-size: 18px;
+              color:white;
 
           }
 
@@ -146,6 +179,7 @@ jobs:
           </head>
 
 
+
           <body>
 
 
@@ -154,25 +188,68 @@ jobs:
           </h2>
 
 
+
           <img src="earth_phone.webp">
+
 
 
           <p>
 
           <a href="earth_phone.webp">
+
           Phone Wallpaper
+
           </a>
 
           </p>
+
 
 
           <p>
 
           <a href="earth_desktop.webp">
+
           Desktop Wallpaper
+
           </a>
 
           </p>
+
+
+
+          <p>
+
+          Updated:
+
+          <span id="time">
+
+          loading...
+
+          </span>
+
+          </p>
+
+
+
+
+          <script>
+
+
+          fetch("update.txt")
+
+          .then(r=>r.text())
+
+          .then(t=>{
+
+              document
+              .getElementById("time")
+              .innerHTML=t;
+
+          })
+
+
+          </script>
+
 
 
           </body>
@@ -180,11 +257,14 @@ jobs:
 
           </html>
 
+
           EOF
 
 
 
-      # 上传Pages文件
+
+
+      # 上传Pages
 
       - name: Upload Pages artifact
 
@@ -213,13 +293,16 @@ jobs:
 
     environment:
 
+
       name: github-pages
+
 
       url: ${{ steps.deployment.outputs.page_url }}
 
 
 
     steps:
+
 
 
       - name: Deploy to GitHub Pages
