@@ -3,18 +3,24 @@ name: Update Himawari Wallpaper
 
 on:
 
+  # 手动运行
+  workflow_dispatch:
+
+
+  # 每10分钟运行一次
   schedule:
 
     - cron: "*/10 * * * *"
 
 
-  workflow_dispatch:
 
-
+# 权限
 permissions:
 
-  contents: write
+  contents: read
+
   pages: write
+
   id-token: write
 
 
@@ -25,68 +31,177 @@ jobs:
   update:
 
 
+    name: Generate images
+
     runs-on: ubuntu-latest
+
 
 
     steps:
 
 
-    - name: Checkout
+      # 拉取代码
 
-      uses: actions/checkout@v4
+      - name: Checkout
 
-
-
-    - name: Setup Python
-
-      uses: actions/setup-python@v5
-
-      with:
-
-        python-version: "3.12"
+        uses: actions/checkout@v4
 
 
 
-    - name: Install dependencies
+      # Python环境
 
-      run:
+      - name: Setup Python
 
-        pip install -r requirements.txt
+        uses: actions/setup-python@v5
 
+        with:
 
-
-    - name: Generate images
-
-      run:
-
-        python main.py
+          python-version: "3.12"
 
 
 
-    - name: Prepare Pages
+      # 安装依赖
 
-      run: |
+      - name: Install dependencies
 
-        mkdir -p public
+        run: |
 
-        cp output/earth_phone.webp public/
-
-        cp output/earth_desktop.webp public/
+          pip install -r requirements.txt
 
 
 
-    - name: Upload Pages Artifact
+      # 运行你的程序
 
-      uses: actions/upload-pages-artifact@v3
+      - name: Generate wallpaper
 
-      with:
+        run: |
 
-        path: public
+          python main.py
+
+
+
+      # 准备Pages文件
+
+      - name: Prepare Pages
+
+        run: |
+
+          mkdir -p public
+
+
+          cp output/earth_phone.webp public/
+
+          cp output/earth_desktop.webp public/
+
+
+          cat > public/index.html <<EOF
+
+          <!DOCTYPE html>
+
+          <html>
+
+          <head>
+
+          <meta charset="utf-8">
+
+          <title>Himawari Earth</title>
+
+
+          <style>
+
+          body {
+
+            background: black;
+
+            color: white;
+
+            text-align: center;
+
+            font-family: Arial, sans-serif;
+
+          }
+
+
+          img {
+
+            width: 90%;
+
+            max-width: 600px;
+
+          }
+
+
+          a {
+
+            color: white;
+
+            font-size: 18px;
+
+          }
+
+
+          </style>
+
+
+          </head>
+
+
+          <body>
+
+
+          <h2>
+          Latest Himawari Earth
+          </h2>
+
+
+          <img src="earth_phone.webp">
+
+
+          <p>
+
+          <a href="earth_phone.webp">
+          Phone Wallpaper
+          </a>
+
+          </p>
+
+
+          <p>
+
+          <a href="earth_desktop.webp">
+          Desktop Wallpaper
+          </a>
+
+          </p>
+
+
+          </body>
+
+
+          </html>
+
+          EOF
+
+
+
+      # 上传Pages文件
+
+      - name: Upload Pages artifact
+
+        uses: actions/upload-pages-artifact@v3
+
+        with:
+
+          path: public
+
 
 
 
 
   deploy:
+
+
+    name: Deploy Pages
 
 
     needs: update
@@ -95,14 +210,20 @@ jobs:
     runs-on: ubuntu-latest
 
 
+
     environment:
 
       name: github-pages
+
+      url: ${{ steps.deployment.outputs.page_url }}
+
 
 
     steps:
 
 
-    - name: Deploy Pages
+      - name: Deploy to GitHub Pages
 
-      uses: actions/deploy-pages@v4
+        id: deployment
+
+        uses: actions/deploy-pages@v4
