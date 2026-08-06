@@ -5,8 +5,8 @@ on:
 
   schedule:
 
-    # 每小时运行一次
-    # GitHub Actions 不保证严格10分钟
+    # 每小时更新一次
+
     - cron: "0 * * * *"
 
 
@@ -24,10 +24,12 @@ permissions:
 
 
 
+
 jobs:
 
 
   update:
+
 
 
     runs-on: ubuntu-latest
@@ -37,20 +39,24 @@ jobs:
     steps:
 
 
-      # ======================
-      # 拉取代码
-      # ======================
+      # ===================
+      # Checkout
+      # ===================
 
       - name: Checkout
 
         uses: actions/checkout@v4
 
+        with:
+
+          fetch-depth: 0
 
 
 
-      # ======================
-      # Python环境
-      # ======================
+
+      # ===================
+      # Python
+      # ===================
 
       - name: Setup Python
 
@@ -59,6 +65,7 @@ jobs:
         with:
 
           python-version: "3.12"
+
 
 
 
@@ -71,9 +78,10 @@ jobs:
 
 
 
-      # ======================
-      # 生成图片
-      # ======================
+
+      # ===================
+      # Generate
+      # ===================
 
       - name: Generate images
 
@@ -84,69 +92,24 @@ jobs:
 
 
 
-      # ======================
-      # 检查生成结果
-      # ======================
 
-      - name: Check generated files
-
-        run: |
-
-          echo "Current UTC time:"
-
-          date -u
-
-
-          echo ""
-
-          echo "Output directory:"
-
-          ls -lah output
-
-
-
-
-
-      # ======================
-      # 保存历史图片
-      # ======================
-
-      - name: Save history images
-
-        run: |
-
-          mkdir -p public/history
-
-
-          TIME=$(date -u +"%Y%m%d_%H%M%S")
-
-
-          cp output/earth_desktop.webp \
-          public/history/earth_desktop_${TIME}.webp
-
-
-          cp output/earth_phone.webp \
-          public/history/earth_phone_${TIME}.webp
-
-
-
-
-      # ======================
-      # 创建Pages目录
-      # ======================
+      # ===================
+      # Prepare Pages
+      # ===================
 
       - name: Prepare Pages
 
         run: |
 
 
-          mkdir -p public
+          mkdir -p public/history
 
 
+
+          # 当前图片
 
           cp output/earth_desktop.webp \
           public/earth_desktop.webp
-
 
 
           cp output/earth_phone.webp \
@@ -154,21 +117,70 @@ jobs:
 
 
 
-          date -u +"%Y-%m-%d %H:%M:%S UTC" \
+
+          # 当前时间
+
+          TIME=$(date -u +"%Y%m%d_%H%M")
+
+          TEXT_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+
+
+          echo $TEXT_TIME \
           > public/update.txt
 
 
 
-          echo "Generated update time:"
-
-          cat public/update.txt
 
 
+          # =====================
+          # 保存历史帧
+          # =====================
 
 
-      # ======================
-      # 配置Pages
-      # ======================
+          cp output/earth_desktop.webp \
+          public/history/earth_${TIME}.webp
+
+
+
+
+          echo "Current history:"
+
+          ls -lh public/history
+
+
+
+
+
+      # =====================
+      # 删除24小时前文件
+      # =====================
+
+      - name: Clean old history
+
+        run: |
+
+
+          find public/history \
+          -type f \
+          -name "*.webp" \
+          -mmin +1440 \
+          -delete
+
+
+
+
+          echo "After cleanup:"
+
+          ls -lh public/history
+
+
+
+
+
+      # =====================
+      # Setup Pages
+      # =====================
 
       - name: Setup Pages
 
@@ -177,9 +189,9 @@ jobs:
 
 
 
-      # ======================
-      # 上传Pages
-      # ======================
+      # =====================
+      # Upload
+      # =====================
 
       - name: Upload Pages artifact
 
@@ -196,6 +208,7 @@ jobs:
   deploy:
 
 
+
     needs: update
 
 
@@ -204,7 +217,6 @@ jobs:
 
 
     steps:
-
 
 
       - name: Deploy to GitHub Pages
