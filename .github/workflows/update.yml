@@ -1,20 +1,24 @@
 name: Update Himawari Wallpaper
 
+
 "on":
 
-  schedule:
-    - cron: "*/5 * * * *"
-
   workflow_dispatch:
+
+  repository_dispatch:
+    types:
+      - update
 
 
 jobs:
 
   test:
+
     runs-on: ubuntu-latest
 
     steps:
-      - name: Test schedule
+
+      - name: Test
         run: |
           date
-          echo "workflow works"
+          echo "repository dispatch works"
