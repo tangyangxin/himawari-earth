@@ -2,15 +2,17 @@ name: Update Himawari Wallpaper
 
 
 on:
-
-  # Cloudflare Worker 触发
   repository_dispatch:
     types:
       - update-wallpaper
 
-
-  # 保留手动运行
   workflow_dispatch:
+
+
+# 防止多个 Cloudflare 触发导致 git push 冲突
+concurrency:
+  group: himawari-update
+  cancel-in-progress: false
 
 
 permissions:
@@ -23,176 +25,238 @@ jobs:
 
   update:
 
+    name: update-wallpaper
+
     runs-on: ubuntu-latest
 
 
     steps:
 
-    - name: Checkout
-      uses: actions/checkout@v4
+      # =========================
+      # Checkout
+      # =========================
 
+      - name: Checkout repository
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.x"
+        uses: actions/checkout@v4
 
+        with:
+          fetch-depth: 0
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
 
 
-    - name: Generate wallpaper
-      run: |
-        python main.py
+      # =========================
+      # Python
+      # =========================
 
+      - name: Setup Python
 
+        uses: actions/setup-python@v5
 
-    # 保存24小时历史
-    - name: Update history
-      run: |
+        with:
+          python-version: "3.x"
 
-        mkdir -p history
 
-        TIME=$(date -u +"%Y%m%d_%H%M")
 
-        cp output/earth.webp \
-        history/earth_${TIME}.webp
+      - name: Install dependencies
 
+        run: |
 
-        python <<EOF
+          pip install -r requirements.txt
 
-        import json
-        import os
-        from datetime import datetime, timedelta
 
 
-        file="history.json"
+      # =========================
+      # Generate wallpaper
+      # =========================
 
+      - name: Generate wallpaper
 
-        if os.path.exists(file):
+        run: |
 
-            with open(file) as f:
-                data=json.load(f)
+          python main.py
 
-        else:
 
-            data=[]
 
+      # =========================
+      # Update history.json
+      # =========================
 
-        now=datetime.utcnow()
+      - name: Update history
 
+        run: |
 
-        data.append({
+          mkdir -p history
 
-            "file":
-            "history/earth_${TIME}.webp",
 
-            "time":
-            now.strftime("%Y-%m-%d %H:%M:%S UTC")
+          python <<'PY'
 
-        })
+          import os
+          import json
+          from datetime import datetime
 
 
-        cutoff=now-timedelta(hours=24)
+          history_file = "history.json"
 
 
-        data=[
+          if os.path.exists(history_file):
 
-            x for x in data
+              try:
+                  with open(history_file,"r") as f:
+                      history=json.load(f)
 
-            if datetime.strptime(
-                x["time"],
-                "%Y-%m-%d %H:%M:%S UTC"
-            ) > cutoff
+              except:
 
-        ]
+                  history=[]
 
+          else:
 
-        with open(file,"w") as f:
+              history=[]
 
-            json.dump(
-                data,
-                f,
-                indent=2
-            )
 
-        EOF
 
+          files=[]
 
+          for root,dirs,names in os.walk("history"):
 
-    # 删除超过24小时图片
-    - name: Clean old history images
-      run: |
+              for name in names:
 
-        python <<EOF
+                  if name.endswith(".webp"):
 
-        import json
-        import os
+                      files.append(
+                          os.path.join(root,name)
+                      )
 
 
-        with open("history.json") as f:
+          files.sort(reverse=True)
 
-            data=json.load(f)
 
 
-        keep=set(
-            x["file"]
-            for x in data
-        )
+          if files:
 
+              latest=files[0]
 
-        for f in os.listdir("history"):
+              history.insert(
+                  0,
+                  {
+                    "image": latest,
+                    "time": datetime.utcnow().isoformat()
+                  }
+              )
 
-            path="history/"+f
 
+          # 保留最近100张
 
-            if path not in keep:
+          history=history[:100]
 
-                os.remove(path)
 
+          with open(history_file,"w") as f:
 
-        EOF
+              json.dump(
+                  history,
+                  f,
+                  indent=2
+              )
 
+          PY
 
 
-    # 提交更新
-    - name: Commit images
-      run: |
 
-        git config user.name "github-actions"
+      # =========================
+      # Clean old images
+      # =========================
 
-        git config user.email "github-actions@github.com"
+      - name: Clean old history images
 
+        run: |
 
-        git add output/
-        git add history/
-        git add history.json
+          python <<'PY'
 
+          import os
 
-        git commit \
-        -m "update wallpaper history" \
-        || echo "No changes"
 
+          folder="history"
 
-        git push
 
+          files=[]
 
 
-    # Pages 部署
-    - name: Setup Pages
-      uses: actions/configure-pages@v5
+          for f in os.listdir(folder):
 
+              if f.endswith(".webp"):
 
-    - name: Upload Pages artifact
-      uses: actions/upload-pages-artifact@v3
+                  files.append(
+                      os.path.join(folder,f)
+                  )
 
-      with:
 
-        path: .
+          files.sort(reverse=True)
 
 
+          for f in files[100:]:
 
-    - name: Deploy Pages
-      uses: actions/deploy-pages@v4
+              os.remove(f)
+
+
+          PY
+
+
+
+      # =========================
+      # Commit
+      # =========================
+
+      - name: Commit images
+
+        run: |
+
+
+          git config user.name "github-actions"
+
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+
+
+          git add .
+
+
+
+          git commit \
+            -m "update wallpaper history" \
+            || echo "No changes"
+
+
+
+          # 防止远程更新导致 push 失败
+
+          git pull --rebase origin main
+
+
+
+          git push
+
+
+
+      # =========================
+      # GitHub Pages
+      # =========================
+
+      - name: Setup Pages
+
+        uses: actions/configure-pages@v5
+
+
+
+      - name: Upload Pages artifact
+
+        uses: actions/upload-pages-artifact@v3
+
+        with:
+
+          path: .
+
+
+
+      - name: Deploy Pages
+
+        uses: actions/deploy-pages@v4
