@@ -3,22 +3,137 @@ name: Update Himawari Wallpaper
 
 "on":
 
+  # 手动测试
   workflow_dispatch:
 
+
+  # 外部定时触发（Cloudflare Worker）
   repository_dispatch:
     types:
       - update
 
 
+
+permissions:
+
+  contents: write
+
+  pages: write
+
+  id-token: write
+
+
+
 jobs:
 
-  test:
+
+  update:
+
 
     runs-on: ubuntu-latest
 
+
     steps:
 
-      - name: Test
+
+      # 拉取仓库
+
+      - name: Checkout repository
+
+        uses: actions/checkout@v4
+
+
+
+      # Python环境
+
+      - name: Setup Python
+
+        uses: actions/setup-python@v5
+
+        with:
+
+          python-version: "3.x"
+
+
+
+      # 安装依赖
+
+      - name: Install dependencies
+
         run: |
-          date
-          echo "repository dispatch works"
+
+          pip install -r requirements.txt
+
+
+
+      # 生成壁纸
+
+      - name: Generate wallpaper
+
+        run: |
+
+          python main.py
+
+
+
+      # 保存图片更新
+
+      - name: Commit generated images
+
+        run: |
+
+          git config user.name "github-actions"
+
+          git config user.email "github-actions@github.com"
+
+
+          git add output/
+
+          git add history.json
+
+
+          git commit -m "update wallpaper" || echo "No changes"
+
+
+          git push
+
+
+
+  deploy:
+
+
+    needs: update
+
+
+    runs-on: ubuntu-latest
+
+
+
+    steps:
+
+
+      - name: Checkout repository
+
+        uses: actions/checkout@v4
+
+
+
+      - name: Setup Pages
+
+        uses: actions/configure-pages@v5
+
+
+
+      - name: Upload Pages artifact
+
+        uses: actions/upload-pages-artifact@v3
+
+        with:
+
+          path: .
+
+
+
+      - name: Deploy to GitHub Pages
+
+        uses: actions/deploy-pages@v4
