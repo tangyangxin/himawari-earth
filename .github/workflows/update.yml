@@ -3,10 +3,13 @@ name: Update Himawari Wallpaper
 
 on:
 
-  schedule:
-    # 每20分钟运行
-    - cron: "*/20 * * * *"
+  # Cloudflare Worker 触发
+  repository_dispatch:
+    types:
+      - update-wallpaper
 
+
+  # 保留手动运行
   workflow_dispatch:
 
 
@@ -45,7 +48,8 @@ jobs:
         python main.py
 
 
-    # 保存历史图片
+
+    # 保存24小时历史
     - name: Update history
       run: |
 
@@ -58,6 +62,7 @@ jobs:
 
 
         python <<EOF
+
         import json
         import os
         from datetime import datetime, timedelta
@@ -67,9 +72,12 @@ jobs:
 
 
         if os.path.exists(file):
+
             with open(file) as f:
                 data=json.load(f)
+
         else:
+
             data=[]
 
 
@@ -77,32 +85,33 @@ jobs:
 
 
         data.append({
+
             "file":
             "history/earth_${TIME}.webp",
+
             "time":
             now.strftime("%Y-%m-%d %H:%M:%S UTC")
+
         })
 
 
-        # 保留24小时
         cutoff=now-timedelta(hours=24)
 
 
-        new=[]
+        data=[
 
-        for item in data:
-            t=datetime.strptime(
-                item["time"],
+            x for x in data
+
+            if datetime.strptime(
+                x["time"],
                 "%Y-%m-%d %H:%M:%S UTC"
-            )
+            ) > cutoff
 
-            if t>cutoff:
-                new.append(item)
-
-        data=new
+        ]
 
 
         with open(file,"w") as f:
+
             json.dump(
                 data,
                 f,
@@ -113,15 +122,18 @@ jobs:
 
 
 
-    # 清理旧图片
+    # 删除超过24小时图片
     - name: Clean old history images
       run: |
 
         python <<EOF
+
         import json
         import os
 
+
         with open("history.json") as f:
+
             data=json.load(f)
 
 
@@ -135,21 +147,23 @@ jobs:
 
             path="history/"+f
 
+
             if path not in keep:
 
                 os.remove(path)
+
 
         EOF
 
 
 
+    # 提交更新
     - name: Commit images
       run: |
 
         git config user.name "github-actions"
 
-        git config user.email \
-        "github-actions@github.com"
+        git config user.email "github-actions@github.com"
 
 
         git add output/
@@ -166,14 +180,18 @@ jobs:
 
 
 
+    # Pages 部署
     - name: Setup Pages
       uses: actions/configure-pages@v5
 
 
     - name: Upload Pages artifact
       uses: actions/upload-pages-artifact@v3
+
       with:
+
         path: .
+
 
 
     - name: Deploy Pages
