@@ -1,139 +1,180 @@
 name: Update Himawari Wallpaper
 
 
-"on":
+on:
 
-  # 手动测试
+  schedule:
+    # 每20分钟运行
+    - cron: "*/20 * * * *"
+
   workflow_dispatch:
 
 
-  # 外部定时触发（Cloudflare Worker）
-  repository_dispatch:
-    types:
-      - update
-
-
-
 permissions:
-
   contents: write
-
   pages: write
-
   id-token: write
-
 
 
 jobs:
 
-
   update:
 
-
     runs-on: ubuntu-latest
 
 
     steps:
 
-
-      # 拉取仓库
-
-      - name: Checkout repository
-
-        uses: actions/checkout@v4
+    - name: Checkout
+      uses: actions/checkout@v4
 
 
-
-      # Python环境
-
-      - name: Setup Python
-
-        uses: actions/setup-python@v5
-
-        with:
-
-          python-version: "3.x"
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.x"
 
 
-
-      # 安装依赖
-
-      - name: Install dependencies
-
-        run: |
-
-          pip install -r requirements.txt
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
 
 
-
-      # 生成壁纸
-
-      - name: Generate wallpaper
-
-        run: |
-
-          python main.py
+    - name: Generate wallpaper
+      run: |
+        python main.py
 
 
+    # 保存历史图片
+    - name: Update history
+      run: |
 
-      # 保存图片更新
+        mkdir -p history
 
-      - name: Commit generated images
+        TIME=$(date -u +"%Y%m%d_%H%M")
 
-        run: |
-
-          git config user.name "github-actions"
-
-          git config user.email "github-actions@github.com"
-
-
-          git add output/
-
-          git add history.json
+        cp output/earth.webp \
+        history/earth_${TIME}.webp
 
 
-          git commit -m "update wallpaper" || echo "No changes"
+        python <<EOF
+        import json
+        import os
+        from datetime import datetime, timedelta
 
 
-          git push
+        file="history.json"
 
 
-
-  deploy:
-
-
-    needs: update
-
-
-    runs-on: ubuntu-latest
+        if os.path.exists(file):
+            with open(file) as f:
+                data=json.load(f)
+        else:
+            data=[]
 
 
-
-    steps:
-
-
-      - name: Checkout repository
-
-        uses: actions/checkout@v4
+        now=datetime.utcnow()
 
 
+        data.append({
+            "file":
+            "history/earth_${TIME}.webp",
+            "time":
+            now.strftime("%Y-%m-%d %H:%M:%S UTC")
+        })
 
-      - name: Setup Pages
 
-        uses: actions/configure-pages@v5
+        # 保留24小时
+        cutoff=now-timedelta(hours=24)
 
 
+        new=[]
 
-      - name: Upload Pages artifact
+        for item in data:
+            t=datetime.strptime(
+                item["time"],
+                "%Y-%m-%d %H:%M:%S UTC"
+            )
 
-        uses: actions/upload-pages-artifact@v3
+            if t>cutoff:
+                new.append(item)
 
-        with:
+        data=new
 
-          path: .
+
+        with open(file,"w") as f:
+            json.dump(
+                data,
+                f,
+                indent=2
+            )
+
+        EOF
 
 
 
-      - name: Deploy to GitHub Pages
+    # 清理旧图片
+    - name: Clean old history images
+      run: |
 
-        uses: actions/deploy-pages@v4
+        python <<EOF
+        import json
+        import os
+
+        with open("history.json") as f:
+            data=json.load(f)
+
+
+        keep=set(
+            x["file"]
+            for x in data
+        )
+
+
+        for f in os.listdir("history"):
+
+            path="history/"+f
+
+            if path not in keep:
+
+                os.remove(path)
+
+        EOF
+
+
+
+    - name: Commit images
+      run: |
+
+        git config user.name "github-actions"
+
+        git config user.email \
+        "github-actions@github.com"
+
+
+        git add output/
+        git add history/
+        git add history.json
+
+
+        git commit \
+        -m "update wallpaper history" \
+        || echo "No changes"
+
+
+        git push
+
+
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+
+
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: .
+
+
+    - name: Deploy Pages
+      uses: actions/deploy-pages@v4
