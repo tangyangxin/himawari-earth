@@ -5,9 +5,11 @@ on:
 
   schedule:
 
-    # 每小时更新一次
+    # 每小时运行一次
+    # 后续如果需要10分钟一帧改为:
+    # */10 * * * *
 
-    - cron: "*/10 * * * *"
+    - cron: "0 * * * *"
 
 
   workflow_dispatch:
@@ -24,12 +26,10 @@ permissions:
 
 
 
-
 jobs:
 
 
   update:
-
 
 
     runs-on: ubuntu-latest
@@ -39,11 +39,11 @@ jobs:
     steps:
 
 
-      # ===================
-      # Checkout
-      # ===================
+      # ==========================
+      # 获取代码
+      # ==========================
 
-      - name: Checkout
+      - name: Checkout repository
 
         uses: actions/checkout@v4
 
@@ -54,9 +54,9 @@ jobs:
 
 
 
-      # ===================
-      # Python
-      # ===================
+      # ==========================
+      # Python环境
+      # ==========================
 
       - name: Setup Python
 
@@ -65,7 +65,6 @@ jobs:
         with:
 
           python-version: "3.12"
-
 
 
 
@@ -79,9 +78,9 @@ jobs:
 
 
 
-      # ===================
-      # Generate
-      # ===================
+      # ==========================
+      # 下载并处理卫星图
+      # ==========================
 
       - name: Generate images
 
@@ -93,11 +92,11 @@ jobs:
 
 
 
-      # ===================
-      # Prepare Pages
-      # ===================
+      # ==========================
+      # 创建网页目录
+      # ==========================
 
-      - name: Prepare Pages
+      - name: Prepare Pages directory
 
         run: |
 
@@ -106,10 +105,15 @@ jobs:
 
 
 
-          # 当前图片
+          echo "Preparing files..."
+
+
+
+          # 当前壁纸
 
           cp output/earth_desktop.webp \
           public/earth_desktop.webp
+
 
 
           cp output/earth_phone.webp \
@@ -118,24 +122,27 @@ jobs:
 
 
 
-          # 当前时间
 
-          TIME=$(date -u +"%Y%m%d_%H%M")
+          # 更新时间
 
-          TEXT_TIME=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
-
-
-
-          echo $TEXT_TIME \
+          date -u +"%Y-%m-%d %H:%M:%S UTC" \
           > public/update.txt
 
 
 
 
 
-          # =====================
-          # 保存历史帧
-          # =====================
+      # ==========================
+      # 保存历史帧
+      # ==========================
+
+      - name: Save history frame
+
+        run: |
+
+
+          TIME=$(date -u +"%Y%m%d_%H%M")
+
 
 
           cp output/earth_desktop.webp \
@@ -144,7 +151,7 @@ jobs:
 
 
 
-          echo "Current history:"
+          echo "Saved frame:"
 
           ls -lh public/history
 
@@ -152,11 +159,11 @@ jobs:
 
 
 
-      # =====================
-      # 删除24小时前文件
-      # =====================
+      # ==========================
+      # 清理24小时前图片
+      # ==========================
 
-      - name: Clean old history
+      - name: Remove old frames
 
         run: |
 
@@ -169,7 +176,6 @@ jobs:
 
 
 
-
           echo "After cleanup:"
 
           ls -lh public/history
@@ -178,9 +184,48 @@ jobs:
 
 
 
-      # =====================
-      # Setup Pages
-      # =====================
+      # ==========================
+      # 生成播放列表
+      # ==========================
+
+      - name: Generate history.json
+
+        run: |
+
+
+          echo "[" > public/history.json
+
+
+
+          find public/history \
+          -type f \
+          -name "*.webp" \
+          | sort \
+          | sed 's#public/##' \
+          | awk '{print "\"" $0 "\","}' \
+          >> public/history.json
+
+
+
+          sed -i '$ s/,$//' public/history.json
+
+
+
+          echo "]" >> public/history.json
+
+
+
+          echo "history.json:"
+
+          cat public/history.json
+
+
+
+
+
+      # ==========================
+      # Pages配置
+      # ==========================
 
       - name: Setup Pages
 
@@ -189,9 +234,10 @@ jobs:
 
 
 
-      # =====================
-      # Upload
-      # =====================
+
+      # ==========================
+      # 上传Pages
+      # ==========================
 
       - name: Upload Pages artifact
 
@@ -212,12 +258,17 @@ jobs:
     needs: update
 
 
+
     runs-on: ubuntu-latest
 
 
 
     steps:
 
+
+      # ==========================
+      # 发布
+      # ==========================
 
       - name: Deploy to GitHub Pages
 
