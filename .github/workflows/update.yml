@@ -3,19 +3,20 @@ name: Update Himawari Wallpaper
 
 on:
 
-  workflow_dispatch:
-
-
   schedule:
 
-    # 每10分钟运行
-    - cron: "*/10 * * * *"
+    # 每小时运行一次
+    # GitHub Actions 不保证严格10分钟
+    - cron: "0 * * * *"
+
+
+  workflow_dispatch:
 
 
 
 permissions:
 
-  contents: read
+  contents: write
 
   pages: write
 
@@ -29,8 +30,6 @@ jobs:
   update:
 
 
-    name: Generate wallpaper
-
     runs-on: ubuntu-latest
 
 
@@ -38,7 +37,9 @@ jobs:
     steps:
 
 
-      # 获取代码
+      # ======================
+      # 拉取代码
+      # ======================
 
       - name: Checkout
 
@@ -46,7 +47,10 @@ jobs:
 
 
 
+
+      # ======================
       # Python环境
+      # ======================
 
       - name: Setup Python
 
@@ -58,8 +62,6 @@ jobs:
 
 
 
-      # 安装依赖
-
       - name: Install dependencies
 
         run: |
@@ -68,203 +70,116 @@ jobs:
 
 
 
+
+      # ======================
       # 生成图片
+      # ======================
 
       - name: Generate images
 
-        run:
+        run: |
 
           python main.py
 
 
 
-      # 创建Pages内容
+
+      # ======================
+      # 检查生成结果
+      # ======================
+
+      - name: Check generated files
+
+        run: |
+
+          echo "Current UTC time:"
+
+          date -u
+
+
+          echo ""
+
+          echo "Output directory:"
+
+          ls -lah output
+
+
+
+
+
+      # ======================
+      # 保存历史图片
+      # ======================
+
+      - name: Save history images
+
+        run: |
+
+          mkdir -p public/history
+
+
+          TIME=$(date -u +"%Y%m%d_%H%M%S")
+
+
+          cp output/earth_desktop.webp \
+          public/history/earth_desktop_${TIME}.webp
+
+
+          cp output/earth_phone.webp \
+          public/history/earth_phone_${TIME}.webp
+
+
+
+
+      # ======================
+      # 创建Pages目录
+      # ======================
 
       - name: Prepare Pages
 
         run: |
 
+
           mkdir -p public
 
 
-          # 当前固定URL图片
-
-          cp output/earth_phone.webp public/earth_phone.webp
-
-          cp output/earth_desktop.webp public/earth_desktop.webp
-
-
-
-          # 生成时间戳
-
-          TIME=$(date -u +"%Y%m%d_%H%M%S")
-
-
-          # 历史版本图片
-
-          cp output/earth_phone.webp \
-          public/earth_phone_${TIME}.webp
-
 
           cp output/earth_desktop.webp \
-          public/earth_desktop_${TIME}.webp
+          public/earth_desktop.webp
 
 
 
-          # 更新时间文件
+          cp output/earth_phone.webp \
+          public/earth_phone.webp
+
+
 
           date -u +"%Y-%m-%d %H:%M:%S UTC" \
           > public/update.txt
 
 
 
-          # 创建主页
+          echo "Generated update time:"
 
-          cat > public/index.html <<EOF
+          cat public/update.txt
 
 
-          <!DOCTYPE html>
 
-          <html>
 
+      # ======================
+      # 配置Pages
+      # ======================
 
-          <head>
+      - name: Setup Pages
 
-          <meta charset="utf-8">
+        uses: actions/configure-pages@v5
 
-          <title>Himawari Earth</title>
 
 
-          <meta name="viewport"
-          content="width=device-width, initial-scale=1">
 
-
-          <style>
-
-
-          body {
-
-              background:black;
-
-              color:white;
-
-              text-align:center;
-
-              font-family:Arial,sans-serif;
-
-          }
-
-
-
-          img {
-
-              width:90%;
-
-              max-width:600px;
-
-          }
-
-
-
-          a {
-
-              color:white;
-
-          }
-
-
-          </style>
-
-
-          </head>
-
-
-
-          <body>
-
-
-          <h2>
-          Latest Himawari Earth
-          </h2>
-
-
-
-          <img src="earth_phone.webp">
-
-
-
-          <p>
-
-          <a href="earth_phone.webp">
-
-          Phone Wallpaper
-
-          </a>
-
-          </p>
-
-
-
-          <p>
-
-          <a href="earth_desktop.webp">
-
-          Desktop Wallpaper
-
-          </a>
-
-          </p>
-
-
-
-          <p>
-
-          Updated:
-
-          <span id="time">
-
-          loading...
-
-          </span>
-
-          </p>
-
-
-
-
-          <script>
-
-
-          fetch("update.txt")
-
-          .then(r=>r.text())
-
-          .then(t=>{
-
-              document
-              .getElementById("time")
-              .innerHTML=t;
-
-          })
-
-
-          </script>
-
-
-
-          </body>
-
-
-          </html>
-
-
-          EOF
-
-
-
-
-
+      # ======================
       # 上传Pages
+      # ======================
 
       - name: Upload Pages artifact
 
@@ -272,16 +187,13 @@ jobs:
 
         with:
 
-          path: public
+          path: ./public
 
 
 
 
 
   deploy:
-
-
-    name: Deploy Pages
 
 
     needs: update
@@ -291,22 +203,10 @@ jobs:
 
 
 
-    environment:
-
-
-      name: github-pages
-
-
-      url: ${{ steps.deployment.outputs.page_url }}
-
-
-
     steps:
 
 
 
       - name: Deploy to GitHub Pages
-
-        id: deployment
 
         uses: actions/deploy-pages@v4
