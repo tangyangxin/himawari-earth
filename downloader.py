@@ -36,6 +36,7 @@ def get_nearest_d(resolution):
 # =========================
 
 def build_url(t, d, x, y):
+
     date = t.strftime("%Y/%m/%d")
     timestamp = t.strftime("%H%M%S")
 
@@ -48,50 +49,90 @@ def build_url(t, d, x, y):
 
 
 # =========================
-# 查找最新可用时间
+# 查找候选时间
 # =========================
 
 def get_time_candidates():
+
     now = datetime.now(timezone.utc)
+
     result = []
 
-    for offset in range(40, 130, 10):
+    # 最大搜索4小时前
+    for offset in range(40, 240, 10):
+
         t = now - timedelta(minutes=offset)
+
         t = t.replace(
             minute=(t.minute // 10) * 10,
             second=0,
             microsecond=0
         )
+
         result.append(t)
 
     return result
 
 
+
+# =========================
+# 检查时间是否有效
+# =========================
+
 def check_time(t):
+
     url = build_url(t, 1, 0, 0)
 
     try:
+
         r = requests.get(
             url,
             timeout=(5, 15),
-            headers={"User-Agent": "Mozilla/5.0"}
+            headers={
+                "User-Agent": "Mozilla/5.0"
+            }
         )
+
         return r.status_code == 200
+
+
     except Exception:
+
         return False
 
 
+
+# =========================
+# 找最新卫星图
+# =========================
+
 def find_latest_time():
+
     print("Searching satellite time...")
 
+
     for t in get_time_candidates():
-        print("Try:", t.strftime("%Y-%m-%d %H:%M"))
+
+        print(
+            "Try:",
+            t.strftime("%Y-%m-%d %H:%M")
+        )
+
 
         if check_time(t):
+
             print("Found:", t)
+
             return t
 
-    raise Exception("No available image found")
+
+
+    print(
+        "No available satellite image found"
+    )
+
+    return None
+
 
 
 # =========================
@@ -99,63 +140,148 @@ def find_latest_time():
 # =========================
 
 def download_tile(t, d, x, y):
+
     url = build_url(t, d, x, y)
 
+
     for i in range(3):
+
         try:
+
             r = requests.get(
                 url,
-                timeout=(10, 30),
-                headers={"User-Agent": "Mozilla/5.0"}
+                timeout=(10,30),
+                headers={
+                    "User-Agent": "Mozilla/5.0"
+                }
             )
 
-            if r.status_code == 200:
-                return Image.open(BytesIO(r.content)).convert("RGB")
 
-            print("HTTP", r.status_code, url)
+            if r.status_code == 200:
+
+                return Image.open(
+                    BytesIO(r.content)
+                ).convert("RGB")
+
+
+
+            print(
+                "HTTP",
+                r.status_code,
+                url
+            )
+
 
         except Exception as e:
-            print("Retry:", i + 1, e)
+
+            print(
+                "Retry:",
+                i+1,
+                e
+            )
+
 
         time.sleep(2)
 
-    raise Exception("Download failed:\n" + url)
+
+
+    raise Exception(
+        "Download failed:\n" + url
+    )
+
 
 
 # =========================
 # 拼接
 # =========================
 
-def merge_tiles(t, d):
-    size = d * TILE_SIZE
+def merge_tiles(t,d):
 
-    canvas = Image.new("RGB", (size, size))
+    size = d*TILE_SIZE
+
+
+    canvas = Image.new(
+        "RGB",
+        (size,size)
+    )
+
 
     for y in range(d):
+
         for x in range(d):
-            print(f"Tile {x}_{y}")
-            img = download_tile(t, d, x, y)
-            canvas.paste(img, (x * TILE_SIZE, y * TILE_SIZE))
+
+            print(
+                f"Tile {x}_{y}"
+            )
+
+
+            img = download_tile(
+                t,
+                d,
+                x,
+                y
+            )
+
+
+            canvas.paste(
+                img,
+                (
+                    x*TILE_SIZE,
+                    y*TILE_SIZE
+                )
+            )
+
 
     return canvas
 
 
+
 # =========================
-# 生成原始图
+# 生成原图
 # =========================
 
 def generate_earth():
-    d = get_nearest_d(TARGET_RESOLUTION)
 
-    print("Using grid:", d, "x", d)
+    d = get_nearest_d(
+        TARGET_RESOLUTION
+    )
+
+
+    print(
+        "Using grid:",
+        d,
+        "x",
+        d
+    )
+
 
     t = find_latest_time()
 
-    print("Satellite time:", t)
 
-    img = merge_tiles(t, d)
+    # 没有卫星图
+    if t is None:
 
-    os.makedirs("output", exist_ok=True)
+        return False
+
+
+
+    print(
+        "Satellite time:",
+        t
+    )
+
+
+    img = merge_tiles(
+        t,
+        d
+    )
+
+
+    os.makedirs(
+        "output",
+        exist_ok=True
+    )
+
 
     img.save(
         OUTPUT,
@@ -164,4 +290,11 @@ def generate_earth():
         method=6
     )
 
-    print("Saved:", OUTPUT)
+
+    print(
+        "Saved:",
+        OUTPUT
+    )
+
+
+    return True
