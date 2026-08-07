@@ -1,5 +1,6 @@
 import os
 import time
+import json
 import requests
 
 from datetime import datetime, timedelta, timezone
@@ -21,14 +22,24 @@ BASE_URL = (
 
 OUTPUT = "output/earth.webp"
 
+HISTORY_DIR = "history"
+HISTORY_JSON = "history.json"
+
+MAX_HISTORY = 48
+
 
 # =========================
 # 分辨率选择
 # =========================
 
 def get_nearest_d(resolution):
+
     levels = [1, 2, 4, 8, 16, 20]
-    return min(levels, key=lambda d: abs(d * TILE_SIZE - resolution))
+
+    return min(
+        levels,
+        key=lambda d: abs(d * TILE_SIZE - resolution)
+    )
 
 
 # =========================
@@ -58,7 +69,8 @@ def get_time_candidates():
 
     result = []
 
-    # 最大搜索4小时前
+
+    # 搜索最近4小时
     for offset in range(40, 240, 10):
 
         t = now - timedelta(minutes=offset)
@@ -71,12 +83,13 @@ def get_time_candidates():
 
         result.append(t)
 
+
     return result
 
 
 
 # =========================
-# 检查时间是否有效
+# 检查时间
 # =========================
 
 def check_time(t):
@@ -87,9 +100,9 @@ def check_time(t):
 
         r = requests.get(
             url,
-            timeout=(5, 15),
+            timeout=(5,15),
             headers={
-                "User-Agent": "Mozilla/5.0"
+                "User-Agent":"Mozilla/5.0"
             }
         )
 
@@ -121,7 +134,10 @@ def find_latest_time():
 
         if check_time(t):
 
-            print("Found:", t)
+            print(
+                "Found:",
+                t
+            )
 
             return t
 
@@ -139,9 +155,14 @@ def find_latest_time():
 # 下载瓦片
 # =========================
 
-def download_tile(t, d, x, y):
+def download_tile(t,d,x,y):
 
-    url = build_url(t, d, x, y)
+    url = build_url(
+        t,
+        d,
+        x,
+        y
+    )
 
 
     for i in range(3):
@@ -152,7 +173,7 @@ def download_tile(t, d, x, y):
                 url,
                 timeout=(10,30),
                 headers={
-                    "User-Agent": "Mozilla/5.0"
+                    "User-Agent":"Mozilla/5.0"
                 }
             )
 
@@ -167,8 +188,7 @@ def download_tile(t, d, x, y):
 
             print(
                 "HTTP",
-                r.status_code,
-                url
+                r.status_code
             )
 
 
@@ -237,12 +257,134 @@ def merge_tiles(t,d):
 
 
 # =========================
+# 保存历史
+# =========================
+
+def save_history(img,t):
+
+    os.makedirs(
+        HISTORY_DIR,
+        exist_ok=True
+    )
+
+
+    filename = (
+        "earth_"
+        + t.strftime("%Y%m%d_%H%M")
+        + ".webp"
+    )
+
+
+    path = os.path.join(
+        HISTORY_DIR,
+        filename
+    )
+
+
+    img.save(
+        path,
+        "WEBP",
+        quality=90,
+        method=6
+    )
+
+
+    print(
+        "Saved history:",
+        path
+    )
+
+
+
+    update_history_json(
+        path,
+        t
+    )
+
+
+
+def update_history_json(path,t):
+
+    records=[]
+
+
+    if os.path.exists(HISTORY_JSON):
+
+        try:
+
+            with open(
+                HISTORY_JSON,
+                "r",
+                encoding="utf-8"
+            ) as f:
+
+                records=json.load(f)
+
+
+        except Exception:
+
+            records=[]
+
+
+
+    item={
+
+        "image":path,
+
+        "time":t.isoformat()
+
+    }
+
+
+
+    # 删除同名旧记录
+
+    records=[
+        r for r in records
+        if r.get("image") != path
+    ]
+
+
+
+    records.insert(
+        0,
+        item
+    )
+
+
+
+    records=records[:MAX_HISTORY]
+
+
+
+    with open(
+        HISTORY_JSON,
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        json.dump(
+            records,
+            f,
+            indent=2,
+            ensure_ascii=False
+        )
+
+
+
+    print(
+        "Updated history.json"
+    )
+
+
+
+# =========================
 # 生成原图
 # =========================
 
 def generate_earth():
 
-    d = get_nearest_d(
+    d=get_nearest_d(
         TARGET_RESOLUTION
     )
 
@@ -255,10 +397,11 @@ def generate_earth():
     )
 
 
-    t = find_latest_time()
+
+    t=find_latest_time()
 
 
-    # 没有卫星图
+
     if t is None:
 
         return False
@@ -271,16 +414,19 @@ def generate_earth():
     )
 
 
-    img = merge_tiles(
+
+    img=merge_tiles(
         t,
         d
     )
+
 
 
     os.makedirs(
         "output",
         exist_ok=True
     )
+
 
 
     img.save(
@@ -291,9 +437,17 @@ def generate_earth():
     )
 
 
+
     print(
         "Saved:",
         OUTPUT
+    )
+
+
+    # 新增：保存历史帧
+    save_history(
+        img,
+        t
     )
 
 
