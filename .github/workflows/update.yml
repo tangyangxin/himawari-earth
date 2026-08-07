@@ -1,5 +1,6 @@
 name: Update Himawari Wallpaper
 
+
 on:
   repository_dispatch:
     types:
@@ -14,7 +15,6 @@ permissions:
   id-token: write
 
 
-# 防止多个 Cloudflare trigger 同时提交导致 git 冲突
 concurrency:
   group: himawari-update
   cancel-in-progress: false
@@ -34,9 +34,6 @@ jobs:
     steps:
 
 
-    # -------------------------
-    # Checkout
-    # -------------------------
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
@@ -44,9 +41,6 @@ jobs:
 
 
 
-    # -------------------------
-    # Setup Python
-    # -------------------------
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
@@ -54,9 +48,6 @@ jobs:
 
 
 
-    # -------------------------
-    # Install dependencies
-    # -------------------------
     - name: Install dependencies
       run: |
 
@@ -68,39 +59,31 @@ jobs:
 
 
 
-    # -------------------------
+    # ======================
     # Generate wallpaper
-    # -------------------------
+    # ======================
     - name: Generate wallpaper
       run: |
 
-        python generate.py
+        python main.py
 
 
 
-    # -------------------------
-    # Update history
-    # -------------------------
-    - name: Update history
+    # ======================
+    # Check output
+    # ======================
+    - name: Verify generated files
       run: |
 
-        python update_history.py || true
+        test -f output/earth.webp
+        test -f output/earth_desktop.webp
+        test -f output/earth_phone.webp
 
 
 
-    # -------------------------
-    # Clean old history
-    # -------------------------
-    - name: Clean old history images
-      run: |
-
-        python clean_history.py || true
-
-
-
-    # -------------------------
-    # Commit images
-    # -------------------------
+    # ======================
+    # Commit update
+    # ======================
     - name: Commit images
       run: |
 
@@ -109,37 +92,29 @@ jobs:
         git config user.email "github-actions@github.com"
 
 
-        git status
-
-
-        git add .
+        git add output history history.json
 
 
         git commit \
-          -m "update wallpaper history" \
-          || echo "No changes to commit"
-
+          -m "update wallpaper" \
+          || echo "No changes"
 
 
         git pull --rebase origin main
-
 
 
         git push
 
 
 
-    # -------------------------
-    # Setup Pages
-    # -------------------------
+    # ======================
+    # GitHub Pages
+    # ======================
     - name: Setup Pages
       uses: actions/configure-pages@v5
 
 
 
-    # -------------------------
-    # Upload Pages
-    # -------------------------
     - name: Upload Pages artifact
       uses: actions/upload-pages-artifact@v3
       with:
@@ -147,8 +122,5 @@ jobs:
 
 
 
-    # -------------------------
-    # Deploy Pages
-    # -------------------------
     - name: Deploy Pages
       uses: actions/deploy-pages@v4
