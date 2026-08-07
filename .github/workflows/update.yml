@@ -1,6 +1,5 @@
 name: Update Himawari Wallpaper
 
-
 on:
   repository_dispatch:
     types:
@@ -9,16 +8,16 @@ on:
   workflow_dispatch:
 
 
-# 防止多个 Cloudflare 触发导致 git push 冲突
-concurrency:
-  group: himawari-update
-  cancel-in-progress: true
-
-
 permissions:
   contents: write
   pages: write
   id-token: write
+
+
+# 防止多个 Cloudflare trigger 同时提交导致 git 冲突
+concurrency:
+  group: himawari-update
+  cancel-in-progress: false
 
 
 jobs:
@@ -29,234 +28,127 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    timeout-minutes: 15
+
 
     steps:
 
-      # =========================
-      # Checkout
-      # =========================
 
-      - name: Checkout repository
-
-        uses: actions/checkout@v4
-
-        with:
-          fetch-depth: 0
+    # -------------------------
+    # Checkout
+    # -------------------------
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
 
 
-      # =========================
-      # Python
-      # =========================
-
-      - name: Setup Python
-
-        uses: actions/setup-python@v5
-
-        with:
-          python-version: "3.x"
+    # -------------------------
+    # Setup Python
+    # -------------------------
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.x"
 
 
 
-      - name: Install dependencies
+    # -------------------------
+    # Install dependencies
+    # -------------------------
+    - name: Install dependencies
+      run: |
 
-        run: |
+        python -m pip install --upgrade pip
 
+        if [ -f requirements.txt ]; then
           pip install -r requirements.txt
+        fi
 
 
 
-      # =========================
-      # Generate wallpaper
-      # =========================
+    # -------------------------
+    # Generate wallpaper
+    # -------------------------
+    - name: Generate wallpaper
+      run: |
 
-      - name: Generate wallpaper
+        python generate.py
 
-        run: |
 
-          python main.py
 
+    # -------------------------
+    # Update history
+    # -------------------------
+    - name: Update history
+      run: |
 
+        python update_history.py || true
 
-      # =========================
-      # Update history.json
-      # =========================
 
-      - name: Update history
 
-        run: |
+    # -------------------------
+    # Clean old history
+    # -------------------------
+    - name: Clean old history images
+      run: |
 
-          mkdir -p history
+        python clean_history.py || true
 
 
-          python <<'PY'
 
-          import os
-          import json
-          from datetime import datetime
+    # -------------------------
+    # Commit images
+    # -------------------------
+    - name: Commit images
+      run: |
 
+        git config user.name "github-actions"
 
-          history_file = "history.json"
+        git config user.email "github-actions@github.com"
 
 
-          if os.path.exists(history_file):
+        git status
 
-              try:
-                  with open(history_file,"r") as f:
-                      history=json.load(f)
 
-              except:
+        git add .
 
-                  history=[]
 
-          else:
+        git commit \
+          -m "update wallpaper history" \
+          || echo "No changes to commit"
 
-              history=[]
 
 
+        git pull --rebase origin main
 
-          files=[]
 
-          for root,dirs,names in os.walk("history"):
 
-              for name in names:
+        git push
 
-                  if name.endswith(".webp"):
 
-                      files.append(
-                          os.path.join(root,name)
-                      )
 
+    # -------------------------
+    # Setup Pages
+    # -------------------------
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
 
-          files.sort(reverse=True)
 
 
+    # -------------------------
+    # Upload Pages
+    # -------------------------
+    - name: Upload Pages artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: .
 
-          if files:
 
-              latest=files[0]
 
-              history.insert(
-                  0,
-                  {
-                    "image": latest,
-                    "time": datetime.utcnow().isoformat()
-                  }
-              )
-
-
-          # 保留最近100张
-
-          history=history[:100]
-
-
-          with open(history_file,"w") as f:
-
-              json.dump(
-                  history,
-                  f,
-                  indent=2
-              )
-
-          PY
-
-
-
-      # =========================
-      # Clean old images
-      # =========================
-
-      - name: Clean old history images
-
-        run: |
-
-          python <<'PY'
-
-          import os
-
-
-          folder="history"
-
-
-          files=[]
-
-
-          for f in os.listdir(folder):
-
-              if f.endswith(".webp"):
-
-                  files.append(
-                      os.path.join(folder,f)
-                  )
-
-
-          files.sort(reverse=True)
-
-
-          for f in files[100:]:
-
-              os.remove(f)
-
-
-          PY
-
-
-
-      # =========================
-      # Commit
-      # =========================
-
-      - name: Commit images
-
-        run: |
-
-
-          git config user.name "github-actions"
-
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-
-
-          git add .
-
-
-
-          git commit \
-            -m "update wallpaper history" \
-            || echo "No changes"
-
-
-
-          # 防止远程更新导致 push 失败
-
-          git pull --rebase origin main
-
-
-
-          git push
-
-
-
-      # =========================
-      # GitHub Pages
-      # =========================
-
-      - name: Setup Pages
-
-        uses: actions/configure-pages@v5
-
-
-
-      - name: Upload Pages artifact
-
-        uses: actions/upload-pages-artifact@v3
-
-        with:
-
-          path: .
-
-
-
-      - name: Deploy Pages
-
-        uses: actions/deploy-pages@v4
+    # -------------------------
+    # Deploy Pages
+    # -------------------------
+    - name: Deploy Pages
+      uses: actions/deploy-pages@v4
