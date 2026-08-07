@@ -25,7 +25,9 @@ OUTPUT = "output/earth.webp"
 HISTORY_DIR = "history"
 HISTORY_JSON = "history.json"
 
-MAX_HISTORY = 48
+# 10分钟一帧，保存24小时
+MAX_HISTORY = 144
+
 
 
 # =========================
@@ -42,8 +44,9 @@ def get_nearest_d(resolution):
     )
 
 
+
 # =========================
-# 构造 URL
+# URL
 # =========================
 
 def build_url(t, d, x, y):
@@ -59,8 +62,9 @@ def build_url(t, d, x, y):
     )
 
 
+
 # =========================
-# 查找候选时间
+# 时间候选
 # =========================
 
 def get_time_candidates():
@@ -68,7 +72,6 @@ def get_time_candidates():
     now = datetime.now(timezone.utc)
 
     result = []
-
 
     # 搜索最近4小时
     for offset in range(40, 240, 10):
@@ -82,7 +85,6 @@ def get_time_candidates():
         )
 
         result.append(t)
-
 
     return result
 
@@ -116,7 +118,7 @@ def check_time(t):
 
 
 # =========================
-# 找最新卫星图
+# 查找最新卫星时间
 # =========================
 
 def find_latest_time():
@@ -183,7 +185,6 @@ def download_tile(t,d,x,y):
                 return Image.open(
                     BytesIO(r.content)
                 ).convert("RGB")
-
 
 
             print(
@@ -281,6 +282,18 @@ def save_history(img,t):
     )
 
 
+    # 已存在，跳过
+    if os.path.exists(path):
+
+        print(
+            "History already exists:",
+            path
+        )
+
+        return
+
+
+
     img.save(
         path,
         "WEBP",
@@ -295,13 +308,16 @@ def save_history(img,t):
     )
 
 
-
     update_history_json(
         path,
         t
     )
 
 
+
+# =========================
+# history.json
+# =========================
 
 def update_history_json(path,t):
 
@@ -337,7 +353,7 @@ def update_history_json(path,t):
 
 
 
-    # 删除同名旧记录
+    # 删除同路径旧记录
 
     records=[
         r for r in records
@@ -346,14 +362,58 @@ def update_history_json(path,t):
 
 
 
-    records.insert(
-        0,
-        item
+    records.append(item)
+
+
+
+    # 时间排序
+    records.sort(
+        key=lambda x:x["time"]
     )
 
 
 
-    records=records[:MAX_HISTORY]
+    # 保留最近24小时
+    records = records[-MAX_HISTORY:]
+
+
+
+    # 删除历史文件
+
+    keep_files=set(
+        r["image"]
+        for r in records
+    )
+
+
+    for filename in os.listdir(HISTORY_DIR):
+
+        filepath = (
+            HISTORY_DIR
+            + "/"
+            + filename
+        )
+
+        relative = (
+            "history/"
+            + filename
+        )
+
+
+        if relative not in keep_files:
+
+            try:
+
+                os.remove(filepath)
+
+                print(
+                    "Removed old:",
+                    filepath
+                )
+
+            except Exception:
+
+                pass
 
 
 
@@ -362,6 +422,7 @@ def update_history_json(path,t):
         "w",
         encoding="utf-8"
     ) as f:
+
 
         json.dump(
             records,
@@ -373,18 +434,20 @@ def update_history_json(path,t):
 
 
     print(
-        "Updated history.json"
+        "Updated history.json:",
+        len(records),
+        "frames"
     )
 
 
 
 # =========================
-# 生成原图
+# 主生成
 # =========================
 
 def generate_earth():
 
-    d=get_nearest_d(
+    d = get_nearest_d(
         TARGET_RESOLUTION
     )
 
@@ -398,7 +461,7 @@ def generate_earth():
 
 
 
-    t=find_latest_time()
+    t = find_latest_time()
 
 
 
@@ -415,7 +478,7 @@ def generate_earth():
 
 
 
-    img=merge_tiles(
+    img = merge_tiles(
         t,
         d
     )
@@ -437,14 +500,13 @@ def generate_earth():
     )
 
 
-
     print(
         "Saved:",
         OUTPUT
     )
 
 
-    # 新增：保存历史帧
+
     save_history(
         img,
         t
