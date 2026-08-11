@@ -1,4 +1,3 @@
-
 import os
 import time
 import json
@@ -8,6 +7,10 @@ from datetime import datetime, timedelta, timezone
 from io import BytesIO
 from PIL import Image
 
+
+# =========================
+# 配置
+# =========================
 
 TARGET_RESOLUTION = 2160
 TILE_SIZE = 550
@@ -22,16 +25,35 @@ OUTPUT = "output/earth.webp"
 HISTORY_DIR = "history"
 HISTORY_JSON = "history.json"
 
+# 最大保险数量
+# 实际按24小时删除
 MAX_HISTORY = 200
 
 
-def get_nearest_d(resolution):
-    levels = [1, 2, 4, 8, 16, 20]
-    return min(levels, key=lambda d: abs(d * TILE_SIZE - resolution))
 
+# =========================
+# 分辨率
+# =========================
+
+def get_nearest_d(resolution):
+
+    levels = [1, 2, 4, 8, 16, 20]
+
+    return min(
+        levels,
+        key=lambda d: abs(d * TILE_SIZE - resolution)
+    )
+
+
+
+# =========================
+# URL
+# =========================
 
 def build_url(t, d, x, y):
+
     date = t.strftime("%Y/%m/%d")
+
     timestamp = t.strftime("%H%M%S")
 
     return (
@@ -42,65 +64,10 @@ def build_url(t, d, x, y):
     )
 
 
-def validate_image(img):
-    if img.size != (TILE_SIZE, TILE_SIZE):
-        return False
 
-    extrema = img.getextrema()
-    max_value = max(v[1] for v in extrema)
-    min_value = min(v[0] for v in extrema)
-
-    # 防止No Image占位图或纯黑异常图
-    if max_value < 150:
-        return False
-
-    if max_value - min_value < 20:
-        return False
-
-    return True
-
-
-def download_tile(t, d, x, y):
-
-    url = build_url(t, d, x, y)
-
-    for i in range(3):
-
-        try:
-            r = requests.get(
-                url,
-                timeout=(10, 30),
-                headers={
-                    "User-Agent": "Mozilla/5.0"
-                }
-            )
-
-            if r.status_code == 200:
-
-                img = Image.open(
-                    BytesIO(r.content)
-                ).convert("RGB")
-
-                if validate_image(img):
-                    return img
-
-                raise Exception(
-                    "Invalid satellite tile"
-                )
-
-        except Exception as e:
-            print(
-                "Tile retry:",
-                i + 1,
-                e
-            )
-
-        time.sleep(2)
-
-    raise Exception(
-        "Download failed: " + url
-    )
-
+# =========================
+# 时间候选
+# =========================
 
 def get_time_candidates():
 
@@ -108,52 +75,67 @@ def get_time_candidates():
 
     result = []
 
-    for offset in range(40, 240, 10):
+
+    for offset in range(40,240,10):
 
         t = now - timedelta(minutes=offset)
 
         t = t.replace(
-            minute=(t.minute // 10) * 10,
+            minute=(t.minute//10)*10,
             second=0,
             microsecond=0
         )
 
         result.append(t)
 
+
     return result
 
 
-def check_time(t, d):
+
+# =========================
+# 检查时间
+# =========================
+
+def check_time(t):
+
+    url = build_url(
+        t,
+        1,
+        0,
+        0
+    )
 
     try:
-        # 检查所有tile中的几个关键位置
-        positions = [
-            (0, 0),
-            (d-1, 0),
-            (0, d-1),
-            (d-1, d-1)
-        ]
 
-        for x, y in positions:
-            img = download_tile(
-                t,
-                d,
-                x,
-                y
-            )
+        r=requests.get(
+            url,
+            timeout=(5,15),
+            headers={
+                "User-Agent":"Mozilla/5.0"
+            }
+        )
 
-            if not validate_image(img):
-                return False
 
-        return True
+        return r.status_code == 200
+
 
     except Exception:
+
         return False
 
 
-def find_latest_time(d):
 
-    print("Searching satellite time...")
+# =========================
+# 查找最新帧
+# =========================
+
+def find_latest_time():
+
+    print(
+        "Searching satellite time..."
+    )
+
 
     for t in get_time_candidates():
 
@@ -162,23 +144,94 @@ def find_latest_time(d):
             t.strftime("%Y-%m-%d %H:%M")
         )
 
-        if check_time(t, d):
 
-            print("Found:", t)
+        if check_time(t):
+
+            print(
+                "Found:",
+                t
+            )
+
             return t
 
-    print("No valid satellite image")
+
+
+    print(
+        "No satellite image"
+    )
+
     return None
 
 
-def merge_tiles(t, d):
 
-    size = d * TILE_SIZE
+# =========================
+# 下载瓦片
+# =========================
 
-    canvas = Image.new(
-        "RGB",
-        (size, size)
+def download_tile(t,d,x,y):
+
+    url = build_url(
+        t,
+        d,
+        x,
+        y
     )
+
+
+    for i in range(3):
+
+        try:
+
+            r=requests.get(
+                url,
+                timeout=(10,30),
+                headers={
+                    "User-Agent":"Mozilla/5.0"
+                }
+            )
+
+
+            if r.status_code==200:
+
+                return Image.open(
+                    BytesIO(r.content)
+                ).convert("RGB")
+
+
+        except Exception as e:
+
+            print(
+                "Retry:",
+                i+1,
+                e
+            )
+
+
+        time.sleep(2)
+
+
+
+    raise Exception(
+        "Download failed "
+        + url
+    )
+
+
+
+# =========================
+# 拼接
+# =========================
+
+def merge_tiles(t,d):
+
+    size=d*TILE_SIZE
+
+
+    canvas=Image.new(
+        "RGB",
+        (size,size)
+    )
+
 
     for y in range(d):
 
@@ -188,32 +241,41 @@ def merge_tiles(t, d):
                 f"Tile {x}_{y}"
             )
 
-            img = download_tile(
+
+            img=download_tile(
                 t,
                 d,
                 x,
                 y
             )
 
+
             canvas.paste(
                 img,
                 (
-                    x * TILE_SIZE,
-                    y * TILE_SIZE
+                    x*TILE_SIZE,
+                    y*TILE_SIZE
                 )
             )
+
 
     return canvas
 
 
-def save_history(img, t):
+
+# =========================
+# 保存历史
+# =========================
+
+def save_history(img,t):
 
     os.makedirs(
         HISTORY_DIR,
         exist_ok=True
     )
 
-    filename = (
+
+    filename=(
         "earth_"
         +
         t.strftime("%Y%m%d_%H%M")
@@ -221,10 +283,25 @@ def save_history(img, t):
         ".webp"
     )
 
-    path = os.path.join(
+
+    path=os.path.join(
         HISTORY_DIR,
         filename
     )
+
+
+    # 防止重复帧
+
+    if os.path.exists(path):
+
+        print(
+            "Already exists:",
+            path
+        )
+
+        return
+
+
 
     img.save(
         path,
@@ -233,67 +310,134 @@ def save_history(img, t):
         method=6
     )
 
+
+    print(
+        "Saved history:",
+        path
+    )
+
+
     update_history_json(
         path,
         t
     )
 
 
-def update_history_json(path, t):
 
-    records = []
+# =========================
+# history管理
+# =========================
+
+def update_history_json(path,t):
+
+    records=[]
+
 
     if os.path.exists(HISTORY_JSON):
 
         try:
+
             with open(
                 HISTORY_JSON,
                 "r",
                 encoding="utf-8"
             ) as f:
-                records = json.load(f)
+
+                records=json.load(f)
+
 
         except Exception:
-            records = []
 
-    records = [
+            records=[]
+
+
+
+    item={
+
+        "image":path,
+
+        "time":t.isoformat()
+
+    }
+
+
+
+    records=[
         r for r in records
         if r.get("image") != path
     ]
 
-    records.append(
-        {
-            "image": path,
-            "time": t.isoformat()
-        }
+
+    records.append(item)
+
+
+
+    # 时间排序
+
+    records.sort(
+        key=lambda x:x["time"]
     )
 
-    cutoff = (
+
+
+    # =====================
+    # 删除24小时前文件
+    # =====================
+
+    cutoff=(
         datetime.now(timezone.utc)
         -
         timedelta(hours=24)
     )
 
-    clean = []
+
+    clean=[]
+
 
     for r in records:
 
         try:
-            rt = datetime.fromisoformat(
+
+            rt=datetime.fromisoformat(
                 r["time"]
             )
 
+
             if rt >= cutoff:
+
                 clean.append(r)
 
+
             else:
-                if os.path.exists(r["image"]):
-                    os.remove(r["image"])
+
+                old=r["image"]
+
+
+                if os.path.exists(old):
+
+                    os.remove(old)
+
+                    print(
+                        "Removed:",
+                        old
+                    )
+
 
         except Exception:
+
             pass
 
-    clean = clean[-MAX_HISTORY:]
+
+
+    records=clean
+
+
+
+    # 最后保险限制
+
+    records=records[-MAX_HISTORY:]
+
+
 
     with open(
         HISTORY_JSON,
@@ -302,18 +446,30 @@ def update_history_json(path, t):
     ) as f:
 
         json.dump(
-            clean,
+            records,
             f,
             indent=2,
             ensure_ascii=False
         )
 
 
+    print(
+        "history frames:",
+        len(records)
+    )
+
+
+
+# =========================
+# 主流程
+# =========================
+
 def generate_earth():
 
-    d = get_nearest_d(
+    d=get_nearest_d(
         TARGET_RESOLUTION
     )
+
 
     print(
         "Grid:",
@@ -322,57 +478,56 @@ def generate_earth():
         d
     )
 
-    t = find_latest_time(d)
+
+
+    t=find_latest_time()
+
 
     if t is None:
-        return False
-
-    try:
-
-        img = merge_tiles(
-            t,
-            d
-        )
-
-        if not validate_image(
-            img.resize(
-                (TILE_SIZE, TILE_SIZE)
-            )
-        ):
-            print(
-                "Merged image invalid"
-            )
-            return False
-
-        os.makedirs(
-            "output",
-            exist_ok=True
-        )
-
-        img.save(
-            OUTPUT,
-            "WEBP",
-            quality=90,
-            method=6
-        )
-
-        save_history(
-            img,
-            t
-        )
-
-        print(
-            "Saved:",
-            OUTPUT
-        )
-
-        return True
-
-    except Exception as e:
-
-        print(
-            "Generate failed:",
-            e
-        )
 
         return False
+
+
+
+    print(
+        "Satellite:",
+        t
+    )
+
+
+
+    img=merge_tiles(
+        t,
+        d
+    )
+
+
+
+    os.makedirs(
+        "output",
+        exist_ok=True
+    )
+
+
+    img.save(
+        OUTPUT,
+        "WEBP",
+        quality=90,
+        method=6
+    )
+
+
+    print(
+        "Saved:",
+        OUTPUT
+    )
+
+
+
+    save_history(
+        img,
+        t
+    )
+
+
+    return True
