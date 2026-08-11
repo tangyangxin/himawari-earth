@@ -192,11 +192,16 @@ def download_tile(t,d,x,y):
 
 
             if r.status_code==200:
-
-                return Image.open(
+                
+                img = Image.open(
                     BytesIO(r.content)
                 ).convert("RGB")
 
+                # 防止NICT返回No Image占位图
+                if img.getbbox() is None:
+                    raise Exception("Empty tile")
+
+                return img
 
         except Exception as e:
 
