@@ -1,33 +1,5 @@
 [
   {
-    "image": "history/earth_20260812_2200.webp",
-    "time": "2026-08-12T22:00:00+00:00"
-  },
-  {
-    "image": "history/earth_20260812_2210.webp",
-    "time": "2026-08-12T22:10:00+00:00"
-  },
-  {
-    "image": "history/earth_20260812_2230.webp",
-    "time": "2026-08-12T22:30:00+00:00"
-  },
-  {
-    "image": "history/earth_20260812_2250.webp",
-    "time": "2026-08-12T22:50:00+00:00"
-  },
-  {
-    "image": "history/earth_20260812_2300.webp",
-    "time": "2026-08-12T23:00:00+00:00"
-  },
-  {
-    "image": "history/earth_20260812_2310.webp",
-    "time": "2026-08-12T23:10:00+00:00"
-  },
-  {
-    "image": "history/earth_20260812_2320.webp",
-    "time": "2026-08-12T23:20:00+00:00"
-  },
-  {
     "image": "history/earth_20260812_2330.webp",
     "time": "2026-08-12T23:30:00+00:00"
   },
@@ -206,5 +178,9 @@
   {
     "image": "history/earth_20260813_1930.webp",
     "time": "2026-08-13T19:30:00+00:00"
+  },
+  {
+    "image": "history/earth_20260813_2240.webp",
+    "time": "2026-08-13T22:40:00+00:00"
   }
 ]
