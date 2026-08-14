@@ -171,9 +171,9 @@ def get_time_candidates():
     result = []
     seen = set()
 
-    # 从约40分钟前开始向前搜索。
-    # NICT 数据通常存在发布延迟，因此不直接请求当前时刻。
-    for offset in range(40, 240, 10):
+    # 从约20分钟前开始向前搜索。
+    # 如果最近一帧尚未发布，会自动继续尝试30、40分钟以前的帧。
+    for offset in range(20, 240, 10):
 
         t = now - timedelta(minutes=offset)
 
@@ -325,12 +325,11 @@ def download_tile(t, d, x, y):
                 BytesIO(r.content)
             ).convert("RGB")
 
-            # 防止 NICT 返回 HTTP 200 + “No Image” 占位图
-            if is_no_image(img):
-
-                raise Exception(
-                    "NICT No Image placeholder"
-                )
+            # 不对单个高分辨率 tile 使用 is_no_image()。
+            # 4d 边角 tile 本身可能大部分都是黑色太空背景，
+            # 启发式检测会把正常的 3_3 等边角瓦片误判为 No Image。
+            # 这里只确保图像可以被 PIL 正常解码。
+            img.load()
 
             return img
 
