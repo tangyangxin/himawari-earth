@@ -1,89 +1,5 @@
 [
   {
-    "image": "history/earth_20260816_0620.webp",
-    "time": "2026-08-16T06:20:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0630.webp",
-    "time": "2026-08-16T06:30:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0640.webp",
-    "time": "2026-08-16T06:40:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0650.webp",
-    "time": "2026-08-16T06:50:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0700.webp",
-    "time": "2026-08-16T07:00:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0710.webp",
-    "time": "2026-08-16T07:10:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0720.webp",
-    "time": "2026-08-16T07:20:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0730.webp",
-    "time": "2026-08-16T07:30:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0740.webp",
-    "time": "2026-08-16T07:40:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0750.webp",
-    "time": "2026-08-16T07:50:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0800.webp",
-    "time": "2026-08-16T08:00:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0810.webp",
-    "time": "2026-08-16T08:10:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0820.webp",
-    "time": "2026-08-16T08:20:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0830.webp",
-    "time": "2026-08-16T08:30:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0840.webp",
-    "time": "2026-08-16T08:40:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0850.webp",
-    "time": "2026-08-16T08:50:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0900.webp",
-    "time": "2026-08-16T09:00:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0910.webp",
-    "time": "2026-08-16T09:10:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0920.webp",
-    "time": "2026-08-16T09:20:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0930.webp",
-    "time": "2026-08-16T09:30:00+00:00"
-  },
-  {
-    "image": "history/earth_20260816_0940.webp",
-    "time": "2026-08-16T09:40:00+00:00"
-  },
-  {
     "image": "history/earth_20260816_0950.webp",
     "time": "2026-08-16T09:50:00+00:00"
   },
@@ -558,5 +474,9 @@
   {
     "image": "history/earth_20260817_0550.webp",
     "time": "2026-08-17T05:50:00+00:00"
+  },
+  {
+    "image": "history/earth_20260817_0920.webp",
+    "time": "2026-08-17T09:20:00+00:00"
   }
 ]
