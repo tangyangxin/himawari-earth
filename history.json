@@ -1,149 +1,5 @@
 [
   {
-    "image": "history/earth_20260901_2050.webp",
-    "time": "2026-09-01T20:50:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2100.webp",
-    "time": "2026-09-01T21:00:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2110.webp",
-    "time": "2026-09-01T21:10:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2120.webp",
-    "time": "2026-09-01T21:20:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2130.webp",
-    "time": "2026-09-01T21:30:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2140.webp",
-    "time": "2026-09-01T21:40:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2150.webp",
-    "time": "2026-09-01T21:50:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2200.webp",
-    "time": "2026-09-01T22:00:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2210.webp",
-    "time": "2026-09-01T22:10:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2220.webp",
-    "time": "2026-09-01T22:20:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2230.webp",
-    "time": "2026-09-01T22:30:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2240.webp",
-    "time": "2026-09-01T22:40:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2250.webp",
-    "time": "2026-09-01T22:50:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2300.webp",
-    "time": "2026-09-01T23:00:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2310.webp",
-    "time": "2026-09-01T23:10:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2320.webp",
-    "time": "2026-09-01T23:20:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2330.webp",
-    "time": "2026-09-01T23:30:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2340.webp",
-    "time": "2026-09-01T23:40:00+00:00"
-  },
-  {
-    "image": "history/earth_20260901_2350.webp",
-    "time": "2026-09-01T23:50:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0000.webp",
-    "time": "2026-09-02T00:00:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0010.webp",
-    "time": "2026-09-02T00:10:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0020.webp",
-    "time": "2026-09-02T00:20:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0030.webp",
-    "time": "2026-09-02T00:30:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0040.webp",
-    "time": "2026-09-02T00:40:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0050.webp",
-    "time": "2026-09-02T00:50:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0100.webp",
-    "time": "2026-09-02T01:00:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0110.webp",
-    "time": "2026-09-02T01:10:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0120.webp",
-    "time": "2026-09-02T01:20:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0130.webp",
-    "time": "2026-09-02T01:30:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0140.webp",
-    "time": "2026-09-02T01:40:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0150.webp",
-    "time": "2026-09-02T01:50:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0200.webp",
-    "time": "2026-09-02T02:00:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0210.webp",
-    "time": "2026-09-02T02:10:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0220.webp",
-    "time": "2026-09-02T02:20:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0230.webp",
-    "time": "2026-09-02T02:30:00+00:00"
-  },
-  {
-    "image": "history/earth_20260902_0250.webp",
-    "time": "2026-09-02T02:50:00+00:00"
-  },
-  {
     "image": "history/earth_20260902_0300.webp",
     "time": "2026-09-02T03:00:00+00:00"
   },
@@ -518,5 +374,9 @@
   {
     "image": "history/earth_20260902_2020.webp",
     "time": "2026-09-02T20:20:00+00:00"
+  },
+  {
+    "image": "history/earth_20260903_0230.webp",
+    "time": "2026-09-03T02:30:00+00:00"
   }
 ]
