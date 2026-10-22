@@ -1,9 +1,5 @@
 [
   {
-    "image": "history/earth_20261021_0850.webp",
-    "time": "2026-10-21T08:50:00+00:00"
-  },
-  {
     "image": "history/earth_20261021_0900.webp",
     "time": "2026-10-21T09:00:00+00:00"
   },
@@ -530,6 +526,10 @@
   {
     "image": "history/earth_20261022_0750.webp",
     "time": "2026-10-22T07:50:00+00:00"
+  },
+  {
+    "image": "history/earth_20261022_0800.webp",
+    "time": "2026-10-22T08:00:00+00:00"
   },
   {
     "image": "history/earth_20261022_0810.webp",
